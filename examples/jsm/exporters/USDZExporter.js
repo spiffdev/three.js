@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as fflate from '../libs/fflate.module.js';
+import { createCanvas } from '@napi-rs/canvas';
 
 class USDZExporter {
 
@@ -120,37 +121,24 @@ class USDZExporter {
 
 function imageToCanvas( image, flipY ) {
 
-	if ( ( typeof HTMLImageElement !== 'undefined' && image instanceof HTMLImageElement ) ||
-		( typeof HTMLCanvasElement !== 'undefined' && image instanceof HTMLCanvasElement ) ||
-		( typeof OffscreenCanvas !== 'undefined' && image instanceof OffscreenCanvas ) ||
-		( typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap ) ) {
+	const scale = 1024 / Math.max( image.width, image.height );
 
-		const scale = 1024 / Math.max( image.width, image.height );
+	const canvas = createCanvas( image.width * Math.min( 1, scale ), image.height * Math.min( 1, scale ) );
 
-		const canvas = document.createElement( 'canvas' );
-		canvas.width = image.width * Math.min( 1, scale );
-		canvas.height = image.height * Math.min( 1, scale );
+	const context = canvas.getContext( '2d' );
 
-		const context = canvas.getContext( '2d' );
+	// TODO: We should be able to do this in the UsdTransform2d?
 
-		// TODO: We should be able to do this in the UsdTransform2d?
+	if ( flipY === true ) {
 
-		if ( flipY === true ) {
-
-			context.translate( 0, canvas.height );
-			context.scale( 1, - 1 );
-
-		}
-
-		context.drawImage( image, 0, 0, canvas.width, canvas.height );
-
-		return canvas;
-
-	} else {
-
-		throw new Error( 'THREE.USDZExporter: No valid image data found. Unable to process texture.' );
+		context.translate( 0, canvas.height );
+		context.scale( 1, - 1 );
 
 	}
+
+	context.drawImage( image, 0, 0, canvas.width, canvas.height );
+
+	return canvas;
 
 }
 
@@ -684,7 +672,7 @@ function buildCamera( camera ) {
 			float verticalAperture = ${ ( ( Math.abs( camera.top ) + Math.abs( camera.bottom ) ) * 10 ).toPrecision( PRECISION ) }
 			token projection = "orthographic"
 		}
-	
+
 	`;
 
 	} else {
@@ -701,7 +689,7 @@ function buildCamera( camera ) {
 			token projection = "perspective"
 			float verticalAperture = ${ camera.getFilmHeight().toPrecision( PRECISION ) }
 		}
-	
+
 	`;
 
 	}
